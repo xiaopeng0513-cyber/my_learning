@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTodo — 任务管理</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PyTodo">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+</head>
+<body>
+    <!-- ===== Login/Register ===== -->
+    <div class="auth-container" id="auth-page">
+        <h1>📝 我的 <span>To-Do</span></h1>
+        <p class="auth-subtitle">登录以管理你的待办事项</p>
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-login">登录</button>
+            <button class="auth-tab" id="tab-register">注册</button>
+        </div>
+        <div class="form-group">
+            <label for="username">用户名</label>
+            <input type="text" id="username" placeholder="请输入用户名" maxlength="30" autocomplete="username" />
+        </div>
+        <div class="form-group">
+            <label for="password">密码</label>
+            <div class="pwd-wrapper">
+                <input type="password" id="password" placeholder="请输入密码" maxlength="50" autocomplete="current-password" />
+                <button class="pwd-toggle" id="pwd-toggle" type="button" title="显示密码">👁️</button>
+            </div>
+        </div>
+        <div class="form-group" id="confirm-group" style="display: none;">
+            <label for="confirm-password">确认密码</label>
+            <div class="pwd-wrapper">
+                <input type="password" id="confirm-password" placeholder="请再次输入密码" maxlength="50" autocomplete="new-password" />
+                <button class="pwd-toggle" id="confirm-pwd-toggle" type="button" title="显示密码">👁️</button>
+            </div>
+        </div>
+        <button class="auth-btn" id="auth-btn">登 录</button>
+        <p class="auth-msg" id="auth-msg"></p>
+        <p style="text-align:center;margin-top:16px;font-size:13px;color:#aaa;">
+            或 <a href="#" id="skip-login" style="color:#667eea;">跳过登录</a>，直接使用
+        </p>
+    </div>
+
+    <!-- ===== Main Page ===== -->
+    <div class="main-container" id="main-page">
+        <div class="share-banner" id="share-banner">
+            <span>🔗 <strong>共享列表模式</strong> <span class="badge">协作</span></span>
+            <span style="font-size:12px;">所有人可通过此链接查看和编辑</span>
+        </div>
+
+        <div class="header">
+            <h1>📝 任务 <span>管理</span></h1>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar"></div>
+                <button class="logout-btn" id="logout-btn">退出登录</button>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <div class="btn-group">
+                <button class="btn btn-primary" id="open-modal-btn">＋ 新建任务</button>
+                <button class="btn btn-share" id="share-btn">🔗 复制分享链接</button>
+                <button class="btn btn-import" id="import-btn">📥 导入分享链接</button>
+                <button class="btn btn-outline" id="export-json-btn">📄 导出 JSON</button>
+                <input type="file" id="import-file-input" accept=".json" style="display:none;" />
+            </div>
+            <select class="sort-select" id="sort-select">
+                <option value="deadline-asc">按截止时间 ↑</option>
+                <option value="deadline-desc">按截止时间 ↓</option>
+                <option value="created-desc">按创建时间 ↓</option>
+                <option value="created-asc">按创建时间 ↑</option>
+                <option value="status">按状态排序</option>
+            </select>
+        </div>
+
+        <div class="stats-bar">
+            <span id="count-text">共 0 项任务</span>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="not-started">未开始</button>
+                <button class="filter-btn" data-filter="in-progress">进行中</button>
+                <button class="filter-btn" data-filter="completed">已完成</button>
+            </div>
+        </div>
+
+        <ul id="todo-list"></ul>
+    </div>
+
+    <!-- ===== Task modal ===== -->
+    <div class="modal-overlay" id="task-modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">➕ <span>新建任务</span></h2>
+            <div class="form-group">
+                <label for="task-title-input">任务名称 *</label>
+                <input type="text" id="task-title-input" placeholder="输入任务名称..." maxlength="200" />
+            </div>
+            <div class="form-group">
+                <label for="task-status-select">任务状态</label>
+                <select id="task-status-select">
+                    <option value="not-started">未开始</option>
+                    <option value="in-progress">进行中</option>
+                    <option value="completed">已完成</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <div class="form-group" style="flex:1;">
+                    <label for="task-start-time">开始时间</label>
+                    <input type="datetime-local" id="task-start-time" />
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label for="task-deadline">目标完成时间</label>
+                    <input type="datetime-local" id="task-deadline" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="task-notes">备注</label>
+                <textarea id="task-notes" placeholder="添加备注信息..." maxlength="500"></textarea>
+            </div>
+            <div class="modal-btns">
+                <button class="btn btn-cancel" id="modal-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="modal-save-btn">保存</button>
+            </div>
+            <div class="modal-btns" id="modal-delete-group" style="display: none;">
+                <button class="btn btn-danger" id="modal-delete-btn">删除此任务</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Import modal ===== -->
+    <div class="modal-overlay" id="import-modal-overlay">
+        <div class="modal">
+            <h2>📥 <span>导入分享链接</span></h2>
+            <p style="font-size:13px;color:#888;margin-bottom:14px;">
+                粘贴其他人分享的 To-Do 链接，或直接粘贴编码数据，即可导入任务列表。
+            </p>
+            <textarea class="import-area" id="import-textarea" placeholder="在此粘贴分享链接或编码数据..."></textarea>
+            <div class="modal-btns">
+                <button class="btn btn-cancel" id="import-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="import-confirm-btn">导入</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

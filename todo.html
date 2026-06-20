@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do 任务管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* ===== 登录/注册页面 ===== */
+        .auth-container {
+            background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%; max-width: 420px; padding: 40px 30px;
+        }
+        .auth-container h1 { text-align: center; color: #333; margin-bottom: 8px; font-size: 28px; }
+        .auth-container h1 span { color: #667eea; }
+        .auth-subtitle { text-align: center; color: #999; font-size: 14px; margin-bottom: 30px; }
+        .auth-tabs { display: flex; margin-bottom: 24px; border-radius: 12px; background: #f5f5f5; padding: 4px; }
+        .auth-tab {
+            flex: 1; padding: 10px; border: none; background: transparent;
+            border-radius: 10px; font-size: 15px; cursor: pointer; color: #888; transition: all 0.3s;
+        }
+        .auth-tab.active { background: #fff; color: #667eea; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 14px; color: #555; font-weight: 500; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 12px;
+            font-size: 16px; outline: none; transition: border-color 0.3s; font-family: inherit;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #667eea; }
+        .form-group textarea { resize: vertical; min-height: 60px; }
+        .auth-btn {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 6px;
+        }
+        .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .auth-btn:active { transform: translateY(0); }
+        .auth-msg { text-align: center; margin-top: 14px; font-size: 14px; min-height: 20px; }
+        .auth-msg.error { color: #ff6b6b; }
+        .auth-msg.success { color: #2ecc71; }
+
+        /* 密码显/隐切换 */
+        .pwd-wrapper { position: relative; }
+        .pwd-wrapper input { width: 100%; padding-right: 50px; }
+        .pwd-toggle {
+            position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+            width: 42px; height: 42px; border: none; background: transparent;
+            cursor: pointer; font-size: 18px; color: #999; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .pwd-toggle:hover { background: #f0f0f0; color: #667eea; }
+
+        /* ===== 主页面 ===== */
+        .main-container {
+            display: none; background: #fff; border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 700px; padding: 30px;
+        }
+        .main-container.visible { display: block; }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;
+        }
+        .header h1 { font-size: 26px; color: #333; }
+        .header h1 span { color: #667eea; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600;
+        }
+        .logout-btn {
+            padding: 8px 16px; border: 2px solid #e0e0e0; background: #fff;
+            border-radius: 10px; font-size: 13px; cursor: pointer; color: #888; transition: all 0.2s;
+        }
+        .logout-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
+        /* 共享提示条 */
+        .share-banner {
+            display: none; align-items: center; justify-content: space-between; gap: 10px;
+            padding: 10px 16px; background: #e8f5e9; border-radius: 12px; margin-bottom: 14px;
+            font-size: 13px; color: #2e7d32; flex-wrap: wrap;
+        }
+        .share-banner.active { display: flex; }
+        .share-banner .badge {
+            background: #2ecc71; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+        }
+
+        /* 操作栏 */
+        .action-bar {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+        }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn {
+            padding: 10px 18px; border: none; border-radius: 12px; font-size: 14px;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap;
+            font-weight: 600;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .btn-outline {
+            background: #fff; color: #667eea; border: 2px solid #667eea;
+        }
+        .btn-outline:hover { background: #667eea; color: #fff; }
+        .btn-share { background: #2ecc71; color: #fff; }
+        .btn-share:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(46,204,113,0.4); }
+        .btn-import { background: #f39c12; color: #fff; }
+        .btn-import:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(243,156,18,0.4); }
+
+        .sort-select {
+            padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 12px;
+            font-size: 14px; color: #555; outline: none; cursor: pointer; background: #fff;
+        }
+
+        .stats-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;
+            font-size: 14px; color: #888; flex-wrap: wrap; gap: 8px;
+        }
+        .filters { display: flex; gap: 5px; flex-wrap: wrap; }
+        .filter-btn {
+            padding: 6px 14px; border: 2px solid #e0e0e0; background: #fff;
+            border-radius: 20px; cursor: pointer; font-size: 13px; color: #666; transition: all 0.2s;
+        }
+        .filter-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
+        .filter-btn:hover:not(.active) { border-color: #667eea; color: #667eea; }
+
+        #todo-list { list-style: none; max-height: 450px; overflow-y: auto; padding-right: 4px; }
+
+        /* 任务卡片 */
+        .task-card {
+            background: #fafafa; border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+            border-left: 5px solid #e0e0e0; transition: all 0.25s; animation: slideIn 0.3s ease; cursor: default;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .task-card:hover { background: #f2f2f2; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .task-card.status-not-started  { border-left-color: #b0b0b0; }
+        .task-card.status-in-progress  { border-left-color: #f0ad4e; }
+        .task-card.status-completed    { border-left-color: #2ecc71; background: #f6fdf6; }
+        .task-card.status-completed .task-title { text-decoration: line-through; color: #aaa; }
+
+        .task-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+        .task-left { flex: 1; min-width: 0; }
+        .task-title { font-size: 16px; font-weight: 600; color: #333; word-break: break-word; }
+        .task-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 12px; color: #888; }
+        .task-meta span {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: #fff; padding: 3px 10px; border-radius: 20px; border: 1px solid #eee;
+        }
+        .task-meta .meta-icon { font-size: 13px; }
+
+        .task-notes {
+            margin-top: 10px; padding: 10px 14px; background: #fffde7; border-radius: 10px;
+            font-size: 13px; color: #777; border-left: 3px solid #ffd54f;
+            white-space: pre-wrap; word-break: break-word;
+        }
+
+        .task-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+        .icon-btn {
+            width: 34px; height: 34px; border: none; background: #fff; border-radius: 10px;
+            cursor: pointer; font-size: 16px; transition: all 0.2s; display: flex;
+            align-items: center; justify-content: center; border: 1px solid #eee;
+        }
+        .icon-btn:hover { background: #f0f0f0; }
+        .icon-btn.edit-btn:hover { background: #667eea; color: #fff; border-color: #667eea; }
+        .icon-btn.delete-btn:hover { background: #ff6b6b; color: #fff; border-color: #ff6b6b; }
+
+        .status-badge {
+            font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+        }
+        .status-badge.not-started { background: #f0f0f0; color: #888; }
+        .status-badge.in-progress { background: #fff3cd; color: #b8860b; }
+        .status-badge.completed    { background: #d4edda; color: #155724; }
+
+        .progress-bar-wrap { margin-top: 10px; }
+        .progress-info { display: flex; justify-content: space-between; font-size: 11px; color: #999; margin-bottom: 4px; }
+        .progress-bar { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: #ccc; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+        .empty-state p { font-size: 16px; }
+
+        /* ===== 模态框 ===== */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 100; justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff; border-radius: 20px; width: 100%; max-width: 520px;
+            max-height: 90vh; overflow-y: auto; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalIn 0.25s ease;
+        }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal h2 { text-align: center; color: #333; margin-bottom: 24px; font-size: 22px; }
+        .modal h2 span { color: #667eea; }
+        .modal .form-group label { font-size: 13px; color: #666; margin-bottom: 5px; }
+        .modal .form-group input, .modal .form-group select, .modal .form-group textarea { padding: 12px 14px; font-size: 15px; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #f0f0f0; color: #666; }
+        .btn-cancel:hover { background: #e0e0e0; }
+        .btn-danger { background: #ff6b6b; color: #fff; }
+        .btn-danger:hover { opacity: 0.85; }
+
+        /* 导入弹窗 */
+        .import-area {
+            width: 100%; min-height: 80px; padding: 12px; border: 2px dashed #e0e0e0;
+            border-radius: 12px; font-size: 14px; font-family: monospace; resize: vertical;
+            outline: none; transition: border-color 0.3s;
+        }
+        .import-area:focus { border-color: #667eea; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 10px; font-size: 14px; color: #fff;
+            z-index: 200; animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+        }
+        .toast.error { background: #ff6b6b; }
+        .toast.success { background: #2ecc71; }
+        .toast.info { background: #667eea; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+        .overdue { color: #ff6b6b !important; font-weight: 600 !important; }
+        .due-soon { color: #f0ad4e !important; font-weight: 600 !important; }
+    </style>
+</head>
+<body>
+    <!-- ===== 登录/注册 ===== -->
+    <div class="auth-container" id="auth-page">
+        <h1>📝 我的 <span>To-Do</span></h1>
+        <p class="auth-subtitle">登录以管理你的待办事项</p>
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-login">登录</button>
+            <button class="auth-tab" id="tab-register">注册</button>
+        </div>
+        <div class="form-group">
+            <label for="username">用户名</label>
+            <input type="text" id="username" placeholder="请输入用户名" maxlength="30" autocomplete="username" />
+        </div>
+        <div class="form-group">
+            <label for="password">密码</label>
+            <div class="pwd-wrapper">
+                <input type="password" id="password" placeholder="请输入密码" maxlength="50" autocomplete="current-password" />
+                <button class="pwd-toggle" id="pwd-toggle" type="button" title="显示密码">👁️</button>
+            </div>
+        </div>
+        <div class="form-group" id="confirm-group" style="display: none;">
+            <label for="confirm-password">确认密码</label>
+            <div class="pwd-wrapper">
+                <input type="password" id="confirm-password" placeholder="请再次输入密码" maxlength="50" autocomplete="new-password" />
+                <button class="pwd-toggle" id="confirm-pwd-toggle" type="button" title="显示密码">👁️</button>
+            </div>
+        </div>
+        <button class="auth-btn" id="auth-btn">登 录</button>
+        <p class="auth-msg" id="auth-msg"></p>
+        <p style="text-align:center;margin-top:16px;font-size:13px;color:#aaa;">
+            或 <a href="#" id="skip-login" style="color:#667eea;">跳过登录</a>，直接使用
+        </p>
+    </div>
+
+    <!-- ===== 主页面 ===== -->
+    <div class="main-container" id="main-page">
+        <!-- 共享提示 -->
+        <div class="share-banner" id="share-banner">
+            <span>🔗 <strong>共享列表模式</strong> <span class="badge">协作</span></span>
+            <span style="font-size:12px;">所有人可通过此链接查看和编辑</span>
+        </div>
+
+        <div class="header">
+            <h1>📝 任务 <span>管理</span></h1>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar"></div>
+                <button class="logout-btn" id="logout-btn">退出登录</button>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <div class="btn-group">
+                <button class="btn btn-primary" id="open-modal-btn">＋ 新建任务</button>
+                <button class="btn btn-share" id="share-btn">🔗 复制分享链接</button>
+                <button class="btn btn-import" id="import-btn">📥 导入分享链接</button>
+                <button class="btn btn-outline" id="export-json-btn">📄 导出 JSON</button>
+                <input type="file" id="import-file-input" accept=".json" style="display:none;" />
+            </div>
+            <select class="sort-select" id="sort-select">
+                <option value="deadline-asc">按截止时间 ↑</option>
+                <option value="deadline-desc">按截止时间 ↓</option>
+                <option value="created-desc">按创建时间 ↓</option>
+                <option value="created-asc">按创建时间 ↑</option>
+                <option value="status">按状态排序</option>
+            </select>
+        </div>
+
+        <div class="stats-bar">
+            <span id="count-text">共 0 项任务</span>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="not-started">未开始</button>
+                <button class="filter-btn" data-filter="in-progress">进行中</button>
+                <button class="filter-btn" data-filter="completed">已完成</button>
+            </div>
+        </div>
+
+        <ul id="todo-list"></ul>
+    </div>
+
+    <!-- ===== 任务编辑弹窗 ===== -->
+    <div class="modal-overlay" id="task-modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">➕ <span>新建任务</span></h2>
+            <div class="form-group">
+                <label for="task-title-input">任务名称 *</label>
+                <input type="text" id="task-title-input" placeholder="输入任务名称..." maxlength="200" />
+            </div>
+            <div class="form-group">
+                <label for="task-status-select">任务状态</label>
+                <select id="task-status-select">
+                    <option value="not-started">未开始</option>
+                    <option value="in-progress">进行中</option>
+                    <option value="completed">已完成</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <div class="form-group" style="flex:1;">
+                    <label for="task-start-time">开始时间</label>
+                    <input type="datetime-local" id="task-start-time" />
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label for="task-deadline">目标完成时间</label>
+                    <input type="datetime-local" id="task-deadline" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="task-notes">备注</label>
+                <textarea id="task-notes" placeholder="添加备注信息..." maxlength="500"></textarea>
+            </div>
+            <div class="modal-btns">
+                <button class="btn btn-cancel" id="modal-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="modal-save-btn">保存</button>
+            </div>
+            <div class="modal-btns" id="modal-delete-group" style="display: none;">
+                <button class="btn btn-danger" id="modal-delete-btn">删除此任务</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 导入分享链接弹窗 ===== -->
+    <div class="modal-overlay" id="import-modal-overlay">
+        <div class="modal">
+            <h2>📥 <span>导入分享链接</span></h2>
+            <p style="font-size:13px;color:#888;margin-bottom:14px;">
+                粘贴其他人分享的 To-Do 链接，或直接粘贴编码数据，即可导入任务列表。
+            </p>
+            <textarea class="import-area" id="import-textarea" placeholder="在此粘贴分享链接或编码数据..."></textarea>
+            <div class="modal-btns">
+                <button class="btn btn-cancel" id="import-cancel-btn">取消</button>
+                <button class="btn btn-primary" id="import-confirm-btn">导入</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== URL 编解码工具 ==========
+        // TextEncoder/TextDecoder 实现安全的 base64 编解码（支持中文等 Unicode）
+        function toBase64(str) {
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(str);
+            let binary = '';
+            bytes.forEach(b => binary += String.fromCharCode(b));
+            return btoa(binary);
+        }
+
+        function fromBase64(b64) {
+            try {
+                const binary = atob(b64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                return new TextDecoder().decode(bytes);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 将 todo 数据编码为 URL-safe 字符串
+        function encodeTodosToURL(todos) {
+            const json = JSON.stringify(todos);
+            return toBase64(json);
+        }
+
+        // 从 URL-safe 字符串解码 todo 数据
+        function decodeTodosFromURL(encoded) {
+            const json = fromBase64(encoded);
+            if (!json) return null;
+            try {
+                const data = JSON.parse(json);
+                if (Array.isArray(data)) return data;
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 从当前 URL 的 fragment 中读取共享数据
+        function getSharedDataFromURL() {
+            const hash = window.location.hash;
+            if (!hash) return null;
+            // 支持格式: #d=<data> 或 #<data>
+            const match = hash.match(/^#d=(.+)/);
+            const encoded = match ? match[1] : hash.slice(1);
+            if (!encoded) return null;
+            return decodeTodosFromURL(encoded);
+        }
+
+        // ========== 存储 ==========
+        const STORAGE_USERS_KEY = 'todo_users';
+        const STORAGE_TODOS_PREFIX = 'todo_data_v2_';
+        const SHARED_CACHE_KEY = 'todo_shared_cache';
+
+        function getUsers() { return JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || '{}'); }
+        function saveUsers(users) { localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users)); }
+        function getUserTodosKey(u) { return STORAGE_TODOS_PREFIX + u; }
+
+        function hashPassword(password) {
+            let hash = 0;
+            const str = 'todo_salt_' + password + '_2024';
+            for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); hash = ((hash << 5) - hash) + c; hash = hash & hash; }
+            return 'hashed_' + Math.abs(hash).toString(36);
+        }
+
+        function showToast(msg, type) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+
+        // ========== 认证 ==========
+        const authPage = document.getElementById('auth-page');
+        const mainPage = document.getElementById('main-page');
+        const authBtn = document.getElementById('auth-btn');
+        const authMsg = document.getElementById('auth-msg');
+        const tabLogin = document.getElementById('tab-login');
+        const tabRegister = document.getElementById('tab-register');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const confirmGroup = document.getElementById('confirm-group');
+        const confirmInput = document.getElementById('confirm-password');
+        const shareBanner = document.getElementById('share-banner');
+
+        let authMode = 'login';
+        let isSharedMode = false; // 是否通过分享链接进入
+
+        tabLogin.addEventListener('click', () => {
+            authMode = 'login'; tabLogin.classList.add('active'); tabRegister.classList.remove('active');
+            confirmGroup.style.display = 'none'; authBtn.textContent = '登 录';
+            authMsg.textContent = ''; authMsg.className = 'auth-msg';
+        });
+        tabRegister.addEventListener('click', () => {
+            authMode = 'register'; tabRegister.classList.add('active'); tabLogin.classList.remove('active');
+            confirmGroup.style.display = 'block'; authBtn.textContent = '注 册';
+            authMsg.textContent = ''; authMsg.className = 'auth-msg';
+        });
+
+        // 密码显/隐切换
+        function setupPwdToggle(toggleBtnId, inputId) {
+            const btn = document.getElementById(toggleBtnId);
+            const input = document.getElementById(inputId);
+            btn.addEventListener('click', () => {
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                btn.textContent = isPassword ? '🙈' : '👁️';
+                btn.title = isPassword ? '隐藏密码' : '显示密码';
+            });
+        }
+        setupPwdToggle('pwd-toggle', 'password');
+        setupPwdToggle('confirm-pwd-toggle', 'confirm-password');
+
+        function showAuthMsg(msg, type) { authMsg.textContent = msg; authMsg.className = `auth-msg ${type}`; }
+
+        function checkLogin() {
+            const session = JSON.parse(sessionStorage.getItem('todo_session') || 'null');
+            if (session && session.username) {
+                showMainPage(session.username);
+                return true;
+            }
+            return false;
+        }
+
+        // "跳过登录" 链接
+        document.getElementById('skip-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            showMainPage('guest');
+        });
+
+        authBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username) { showAuthMsg('请输入用户名', 'error'); return; }
+            if (username.length < 2) { showAuthMsg('用户名至少需要 2 个字符', 'error'); return; }
+            if (!password) { showAuthMsg('请输入密码', 'error'); return; }
+            if (password.length < 4) { showAuthMsg('密码至少需要 4 个字符', 'error'); return; }
+
+            const users = getUsers();
+
+            if (authMode === 'register') {
+                const confirmPwd = confirmInput.value;
+                if (password !== confirmPwd) { showAuthMsg('两次输入的密码不一致', 'error'); return; }
+                if (users[username]) { showAuthMsg('该用户名已被注册，请换一个', 'error'); return; }
+                users[username] = { password: hashPassword(password), createdAt: new Date().toISOString() };
+                saveUsers(users);
+                showAuthMsg('注册成功！正在登录...', 'success');
+                setTimeout(() => showMainPage(username), 600);
+            } else {
+                const user = users[username];
+                if (!user) { showAuthMsg('用户名不存在，请先注册', 'error'); return; }
+                if (user.password !== hashPassword(password)) { showAuthMsg('密码错误，请重试', 'error'); return; }
+                showMainPage(username);
+            }
+        });
+
+        [passwordInput, confirmInput].forEach(el => {
+            el.addEventListener('keydown', e => { if (e.key === 'Enter') authBtn.click(); });
+        });
+        usernameInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { if (authMode === 'register') confirmInput.focus(); else passwordInput.focus(); }
+        });
+
+        function showMainPage(username) {
+            sessionStorage.setItem('todo_session', JSON.stringify({ username }));
+            authPage.style.display = 'none';
+            mainPage.classList.add('visible');
+            document.getElementById('user-avatar').textContent = (username || '?').charAt(0).toUpperCase();
+            currentUser = username;
+            initTodos();
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            sessionStorage.removeItem('todo_session');
+            mainPage.classList.remove('visible');
+            authPage.style.display = 'block';
+            currentUser = null; todos = [];
+            isSharedMode = false;
+            shareBanner.classList.remove('active');
+            window.location.hash = '';
+            usernameInput.value = ''; passwordInput.value = ''; confirmInput.value = '';
+            authMsg.textContent = ''; authMsg.className = 'auth-msg';
+            usernameInput.focus();
+        });
+
+        // ========== 初始化数据（判断共享模式 vs 本地模式） ==========
+        function initTodos() {
+            const sharedData = getSharedDataFromURL();
+
+            if (sharedData && sharedData.length > 0) {
+                // 从 URL 加载共享数据
+                todos = sharedData;
+                isSharedMode = true;
+                shareBanner.classList.add('active');
+                showToast('已加载共享任务列表', 'info');
+            } else if (sharedData && sharedData.length === 0) {
+                // URL 中有空数据标记，也视为共享模式
+                todos = [];
+                isSharedMode = true;
+                shareBanner.classList.add('active');
+            } else {
+                // 从 localStorage 加载个人数据
+                isSharedMode = false;
+                shareBanner.classList.remove('active');
+                loadTodos();
+            }
+
+            // 如果 URL 有共享数据，缓存到 localStorage
+            if (isSharedMode) {
+                localStorage.setItem(SHARED_CACHE_KEY, JSON.stringify(todos));
+            }
+
+            render();
+        }
+
+        // ========== Todo 逻辑 ==========
+        let currentUser = null;
+        let todos = [];
+        let currentFilter = 'all';
+        let currentSort = 'deadline-asc';
+        let editingTaskId = null;
+
+        const todoList = document.getElementById('todo-list');
+        const countText = document.getElementById('count-text');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const sortSelect = document.getElementById('sort-select');
+        const modalOverlay = document.getElementById('task-modal-overlay');
+        const modalTitle = document.getElementById('modal-title');
+        const taskTitleInput = document.getElementById('task-title-input');
+        const taskStatusSelect = document.getElementById('task-status-select');
+        const taskStartInput = document.getElementById('task-start-time');
+        const taskDeadlineInput = document.getElementById('task-deadline');
+        const taskNotesInput = document.getElementById('task-notes');
+        const modalSaveBtn = document.getElementById('modal-save-btn');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalDeleteBtn = document.getElementById('modal-delete-btn');
+        const modalDeleteGroup = document.getElementById('modal-delete-group');
+
+        function loadTodos() {
+            if (!currentUser) return;
+            todos = JSON.parse(localStorage.getItem(getUserTodosKey(currentUser)) || '[]');
+        }
+
+        function saveTodos() {
+            if (!currentUser) return;
+
+            if (isSharedMode) {
+                // 共享模式：更新 URL 和缓存
+                updateShareURL();
+                localStorage.setItem(SHARED_CACHE_KEY, JSON.stringify(todos));
+            } else {
+                // 本地模式：保存到 localStorage
+                localStorage.setItem(getUserTodosKey(currentUser), JSON.stringify(todos));
+            }
+        }
+
+        // 更新 URL 中的共享数据（防抖）
+        let urlUpdateTimeout;
+        function updateShareURL() {
+            clearTimeout(urlUpdateTimeout);
+            urlUpdateTimeout = setTimeout(() => {
+                const encoded = encodeTodosToURL(todos);
+                // 使用 replaceState 避免产生过多历史记录
+                const newHash = '#d=' + encoded;
+                if (window.location.hash !== newHash) {
+                    history.replaceState(null, '', newHash);
+                }
+            }, 300);
+        }
+
+        // 排序
+        function sortTodos(list) {
+            const arr = [...list];
+            switch (currentSort) {
+                case 'deadline-asc':
+                    return arr.sort((a, b) => {
+                        if (!a.deadline && !b.deadline) return b.id - a.id;
+                        if (!a.deadline) return 1;
+                        if (!b.deadline) return -1;
+                        return new Date(a.deadline) - new Date(b.deadline);
+                    });
+                case 'deadline-desc':
+                    return arr.sort((a, b) => {
+                        if (!a.deadline && !b.deadline) return b.id - a.id;
+                        if (!a.deadline) return 1;
+                        if (!b.deadline) return -1;
+                        return new Date(b.deadline) - new Date(a.deadline);
+                    });
+                case 'created-desc': return arr.sort((a, b) => b.id - a.id);
+                case 'created-asc':  return arr.sort((a, b) => a.id - b.id);
+                case 'status':
+                    const order = { 'in-progress': 0, 'not-started': 1, 'completed': 2 };
+                    return arr.sort((a, b) => (order[a.status] ?? 1) - (order[b.status] ?? 1));
+                default: return arr;
+            }
+        }
+
+        function getFilteredTodos() {
+            let result = todos;
+            if (currentFilter === 'not-started') result = todos.filter(t => t.status === 'not-started');
+            if (currentFilter === 'in-progress') result = todos.filter(t => t.status === 'in-progress');
+            if (currentFilter === 'completed')   result = todos.filter(t => t.status === 'completed');
+            return sortTodos(result);
+        }
+
+        function calcProgress(task) {
+            if (!task.startTime || !task.deadline) return null;
+            const now = Date.now();
+            const start = new Date(task.startTime).getTime();
+            const end = new Date(task.deadline).getTime();
+            if (end <= start) return null;
+            const pct = Math.round(((now - start) / (end - start)) * 100);
+            return Math.max(0, Math.min(100, pct));
+        }
+
+        function formatDateTime(isoStr) {
+            if (!isoStr) return '—';
+            const d = new Date(isoStr);
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function isOverdue(task) {
+            if (!task.deadline || task.status === 'completed') return false;
+            return new Date(task.deadline) < new Date();
+        }
+
+        function isDueSoon(task) {
+            if (!task.deadline || task.status === 'completed') return false;
+            const diff = new Date(task.deadline) - new Date();
+            return diff > 0 && diff < 24 * 60 * 60 * 1000;
+        }
+
+        function render() {
+            const filtered = getFilteredTodos();
+            const counts = {
+                'not-started': todos.filter(t => t.status === 'not-started').length,
+                'in-progress': todos.filter(t => t.status === 'in-progress').length,
+                'completed': todos.filter(t => t.status === 'completed').length,
+            };
+            const total = todos.length;
+
+            countText.textContent = `共 ${total} 项 · 未开始 ${counts['not-started']} · 进行中 ${counts['in-progress']} · 已完成 ${counts['completed']}`;
+
+            if (filtered.length === 0) {
+                const msgs = {
+                    all: '还没有任务，点击上方按钮创建一个吧！',
+                    'not-started': '没有"未开始"的任务',
+                    'in-progress': '没有"进行中"的任务',
+                    completed: '还没有已完成的任务',
+                };
+                todoList.innerHTML = `<li class="empty-state"><div class="icon">📋</div><p>${msgs[currentFilter]}</p></li>`;
+                return;
+            }
+
+            const statusLabels = { 'not-started': '未开始', 'in-progress': '进行中', 'completed': '已完成' };
+            const statusIcons = { 'not-started': '⏳', 'in-progress': '🔄', 'completed': '✅' };
+
+            todoList.innerHTML = filtered.map(task => {
+                const progress = calcProgress(task);
+                const overdue = isOverdue(task);
+                const dueSoon = isDueSoon(task);
+                let deadlineClass = '';
+                if (overdue) deadlineClass = 'overdue';
+                else if (dueSoon) deadlineClass = 'due-soon';
+
+                return `
+                <li class="task-card status-${task.status}" data-id="${task.id}">
+                    <div class="task-header">
+                        <div class="task-left">
+                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                <span class="task-title">${escapeHtml(task.title)}</span>
+                                <span class="status-badge ${task.status}">${statusIcons[task.status]} ${statusLabels[task.status]}</span>
+                            </div>
+                            <div class="task-meta">
+                                <span><span class="meta-icon">🕐</span> 开始：${formatDateTime(task.startTime)}</span>
+                                <span class="${deadlineClass}"><span class="meta-icon">🎯</span> 截止：${formatDateTime(task.deadline)}</span>
+                                ${overdue && task.status !== 'completed' ? '<span style="color:#ff6b6b;border-color:#ff6b6b;">⚠️ 已超期</span>' : ''}
+                                ${dueSoon ? '<span style="color:#f0ad4e;border-color:#f0ad4e;">⚡ 即将到期</span>' : ''}
+                            </div>
+                            ${task.notes ? `<div class="task-notes">💬 ${escapeHtml(task.notes)}</div>` : ''}
+                            ${progress !== null && task.status !== 'completed' ? `
+                            <div class="progress-bar-wrap">
+                                <div class="progress-info"><span>时间进度</span><span>${progress}%</span></div>
+                                <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;background:${progress > 80 ? '#ff6b6b' : progress > 50 ? '#f0ad4e' : '#667eea'}"></div></div>
+                            </div>` : ''}
+                        </div>
+                        <div class="task-actions">
+                            <button class="icon-btn edit-btn" onclick="openEditModal(${task.id})" title="编辑">✎</button>
+                            <button class="icon-btn delete-btn" onclick="confirmDelete(${task.id})" title="删除">×</button>
+                        </div>
+                    </div>
+                </li>`;
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ========== 弹窗逻辑 ==========
+        function openNewTaskModal() {
+            editingTaskId = null;
+            modalTitle.innerHTML = '➕ <span>新建任务</span>';
+            taskTitleInput.value = '';
+            taskStatusSelect.value = 'not-started';
+            taskStartInput.value = '';
+            taskDeadlineInput.value = '';
+            taskNotesInput.value = '';
+            modalDeleteGroup.style.display = 'none';
+            modalOverlay.classList.add('active');
+            taskTitleInput.focus();
+        }
+
+        function openEditModal(id) {
+            const task = todos.find(t => t.id === id);
+            if (!task) return;
+            editingTaskId = id;
+            modalTitle.innerHTML = '✎ <span>编辑任务</span>';
+            taskTitleInput.value = task.title;
+            taskStatusSelect.value = task.status;
+            taskStartInput.value = task.startTime || '';
+            taskDeadlineInput.value = task.deadline || '';
+            taskNotesInput.value = task.notes || '';
+            modalDeleteGroup.style.display = 'flex';
+            modalOverlay.classList.add('active');
+            taskTitleInput.focus();
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('active');
+            editingTaskId = null;
+        }
+
+        function confirmDelete(id) {
+            if (confirm('确定要删除这个任务吗？此操作不可恢复。')) {
+                todos = todos.filter(t => t.id !== id);
+                saveTodos();
+                render();
+                showToast('任务已删除', 'success');
+            }
+        }
+
+        modalSaveBtn.addEventListener('click', () => {
+            const title = taskTitleInput.value.trim();
+            if (!title) { showToast('请输入任务名称', 'error'); return; }
+
+            const data = {
+                title: title,
+                status: taskStatusSelect.value,
+                startTime: taskStartInput.value || null,
+                deadline: taskDeadlineInput.value || null,
+                notes: taskNotesInput.value.trim() || null,
+            };
+
+            if (editingTaskId) {
+                const task = todos.find(t => t.id === editingTaskId);
+                if (task) {
+                    Object.assign(task, data);
+                    saveTodos();
+                    render();
+                    showToast('任务已更新', 'success');
+                }
+            } else {
+                const task = { id: Date.now(), ...data, createdAt: new Date().toISOString() };
+                todos.push(task);
+                saveTodos();
+                render();
+                showToast('任务已创建', 'success');
+            }
+            closeModal();
+        });
+
+        modalCancelBtn.addEventListener('click', closeModal);
+        modalDeleteBtn.addEventListener('click', () => {
+            if (editingTaskId) {
+                confirmDelete(editingTaskId);
+                closeModal();
+            }
+        });
+        modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('active')) closeModal();
+        });
+
+        // ========== 分享功能 ==========
+        document.getElementById('share-btn').addEventListener('click', () => {
+            if (todos.length === 0) {
+                showToast('请先创建任务再分享', 'error');
+                return;
+            }
+
+            // 切换到共享模式
+            if (!isSharedMode) {
+                isSharedMode = true;
+                shareBanner.classList.add('active');
+            }
+
+            // 更新 URL
+            const encoded = encodeTodosToURL(todos);
+            const url = window.location.origin + window.location.pathname + '#d=' + encoded;
+
+            // 复制到剪贴板
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('✅ 分享链接已复制到剪贴板！', 'success');
+                }).catch(() => {
+                    fallbackCopy(url);
+                });
+            } else {
+                fallbackCopy(url);
+            }
+
+            // 同步更新浏览器地址栏
+            history.replaceState(null, '', '#d=' + encoded);
+            saveTodos();
+        });
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try { document.execCommand('copy'); showToast('✅ 分享链接已复制到剪贴板！', 'success'); }
+            catch (e) { showToast('复制失败，请手动复制地址栏链接', 'error'); }
+            document.body.removeChild(textarea);
+        }
+
+        // ========== 导入功能 ==========
+        const importModalOverlay = document.getElementById('import-modal-overlay');
+        const importTextarea = document.getElementById('import-textarea');
+
+        document.getElementById('import-btn').addEventListener('click', () => {
+            importTextarea.value = '';
+            importModalOverlay.classList.add('active');
+            importTextarea.focus();
+        });
+
+        document.getElementById('import-cancel-btn').addEventListener('click', () => {
+            importModalOverlay.classList.remove('active');
+        });
+
+        document.getElementById('import-confirm-btn').addEventListener('click', () => {
+            const raw = importTextarea.value.trim();
+            if (!raw) { showToast('请粘贴分享链接或编码数据', 'error'); return; }
+
+            // 尝试提取编码数据（可能是完整 URL 或纯编码字符串）
+            let encoded = raw;
+            // 如果粘贴的是完整 URL，提取 #d= 后面的部分
+            const urlMatch = raw.match(/#d=(.+)$/);
+            if (urlMatch) encoded = urlMatch[1];
+            // 也可能是旧格式 #<data>
+            const oldMatch = raw.match(/#([^#]+)$/);
+            if (!urlMatch && oldMatch && oldMatch[1].length > 20) encoded = oldMatch[1];
+
+            const data = decodeTodosFromURL(encoded);
+            if (!data) {
+                showToast('无法解析分享数据，请检查链接是否完整', 'error');
+                return;
+            }
+
+            // 导入数据
+            todos = data;
+            isSharedMode = true;
+            shareBanner.classList.add('active');
+            saveTodos();
+            render();
+            importModalOverlay.classList.remove('active');
+
+            // 更新 URL
+            const newEncoded = encodeTodosToURL(todos);
+            history.replaceState(null, '', '#d=' + newEncoded);
+
+            showToast(`✅ 成功导入 ${data.length} 条任务！`, 'success');
+        });
+
+        importModalOverlay.addEventListener('click', (e) => {
+            if (e.target === importModalOverlay) importModalOverlay.classList.remove('active');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && importModalOverlay.classList.contains('active')) {
+                importModalOverlay.classList.remove('active');
+            }
+        });
+
+        // ========== 导出 JSON 文件 ==========
+        document.getElementById('export-json-btn').addEventListener('click', () => {
+            if (todos.length === 0) {
+                showToast('没有任务可导出', 'error');
+                return;
+            }
+            const json = JSON.stringify(todos, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `todo-backup-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('JSON 文件已下载', 'success');
+        });
+
+        // 导入 JSON 文件
+        document.getElementById('import-file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (!Array.isArray(data)) throw new Error('格式错误');
+                    todos = data;
+                    isSharedMode = false;
+                    shareBanner.classList.remove('active');
+                    saveTodos();
+                    render();
+                    showToast(`✅ 已导入 ${data.length} 条任务`, 'success');
+                } catch (err) {
+                    showToast('JSON 文件格式不正确', 'error');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+
+        // 给导出按钮增加右键/长按导入功能 — 改为加一个导入 JSON 文件的小按钮
+        // 直接在操作栏添加一个隐藏的文件导入触发器
+        const exportBtn = document.getElementById('export-json-btn');
+        exportBtn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            document.getElementById('import-file-input').click();
+        });
+
+        // ========== 事件监听 ==========
+        document.getElementById('open-modal-btn').addEventListener('click', openNewTaskModal);
+
+        sortSelect.addEventListener('change', () => {
+            currentSort = sortSelect.value;
+            render();
+        });
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                render();
+            });
+        });
+
+        // 监听浏览器前进/后退（URL hash 变化）
+        window.addEventListener('hashchange', () => {
+            if (!currentUser) return;
+            const sharedData = getSharedDataFromURL();
+            if (sharedData) {
+                todos = sharedData;
+                isSharedMode = true;
+                shareBanner.classList.add('active');
+                localStorage.setItem(SHARED_CACHE_KEY, JSON.stringify(todos));
+                render();
+                showToast('已同步 URL 中的任务数据', 'info');
+            }
+        });
+
+        // ========== 启动 ==========
+        // 先检查是否从分享链接打开
+        const hasSharedData = !!getSharedDataFromURL();
+
+        if (hasSharedData) {
+            // 从分享链接打开：直接进入（跳过登录）
+            showMainPage('shared');
+        } else {
+            // 正常打开：检查登录
+            checkLogin();
+        }
+    </script>
+</body>
+</html>
