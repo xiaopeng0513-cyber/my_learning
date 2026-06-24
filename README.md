@@ -1,2 +1,2 @@
 # my_learning
-this is a automatical management tool that completely manages your todo list;
+this is my first product to create a todo list automatically
