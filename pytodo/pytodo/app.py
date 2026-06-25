@@ -17,7 +17,7 @@ def create_app(config=None):
         static_folder="static",
         static_url_path="/static",
     )
-
+    
     # Configuration
     if config is None:
         env = os.environ.get("PYTODO_ENV", "development")
